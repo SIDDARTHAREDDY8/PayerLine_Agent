@@ -47,12 +47,22 @@ lines), which also means every call has a known ground truth — so accuracy is
 
 ## Run it
 
+No API key? The verification layer and the FHIR write-back are pure logic, and
+run against a scripted adversarial call:
+
 ```bash
 pip install -r requirements.txt
+python demo_offline.py   # no key needed — shows the naive vs. corrected record
+```
+
+The full loop (live agent ↔ simulated payer ↔ LLM extraction) needs a key:
+
+```bash
 export ANTHROPIC_API_KEY=sk-...        # any LLM works; swap the client in llm.py
 
 python run_demo.py 2     # runs the ADVERSARIAL scenario (rep misstates deductible)
 python eval_run.py       # full accuracy + verification report across scenarios
+python review_queue.py   # per-call triage routes + the auto-post rate
 ```
 
 Watch scenario 2: the rep claims $2,000 of a $1,000 deductible is met. A naive
@@ -73,7 +83,7 @@ inconsistency.
   (Twilio/LiveKit/Vapi) with STT/TTS — `call.py` is the seam. I scoped this to the
   reasoning + reliability layer on purpose; that's the hard part.
 - IVR navigation is simulated, not DTMF against real payer trees.
-- The eval set is 3 scenarios to keep it readable; the harness scales to hundreds.
+- The eval set is 4 scenarios to keep it readable; the harness scales to hundreds.
 - Verification rules are hand-written; next step is learning them from labeled
   call outcomes (the knowledge-graph direction).
 

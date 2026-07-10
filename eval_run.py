@@ -19,6 +19,10 @@ def field_match(expected, actual) -> bool:
     return expected == actual
 
 
+def pct(correct: int, total: int) -> str:
+    return f"{100*correct//total}%" if total else "n/a"
+
+
 def main():
     total_fields = total_correct = 0
 
@@ -43,7 +47,7 @@ def main():
         flags = verify(record)
 
         print(f"\n{sc['name']}")
-        print(f"  field accuracy: {correct}/{n}  ({100*correct//n}%)")
+        print(f"  field accuracy: {correct}/{n}  ({pct(correct, n)})")
         for m in misses:
             print(f"    ✗ {m}")
         print(f"  verification flags raised: {len(flags)}")
@@ -52,7 +56,7 @@ def main():
 
     print(f"\n{'='*60}")
     print(f"OVERALL FIELD ACCURACY: {total_correct}/{total_fields}  "
-          f"({100*total_correct//total_fields}%)")
+          f"({pct(total_correct, total_fields)})")
 
 
 if __name__ == "__main__":

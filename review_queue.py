@@ -22,6 +22,10 @@ def field_match(exp, act) -> bool:
     return exp == act
 
 
+def pct(correct: int, total: int) -> str:
+    return f"{100*correct//total}%" if total else "n/a"
+
+
 def main():
     total = correct = auto = 0
     rows = []
@@ -44,12 +48,12 @@ def main():
     print("REVIEW QUEUE".ljust(46) + "acc".rjust(7) + "   route")
     print("=" * 74)
     for name, c, n, d in rows:
-        print(f"{name[:44]:44} {c}/{n:<4} {100*c//n:>3}%  {ICON[d.route]}")
+        print(f"{name[:44]:44} {c}/{n:<4} {pct(c, n):>4}  {ICON[d.route]}")
         print(f"    └ {d.reasons[0]}")
 
     rate = round(100 * auto / len(rows))
     print("-" * 74)
-    print(f"Overall field accuracy: {correct}/{total} ({100*correct//total}%)")
+    print(f"Overall field accuracy: {correct}/{total} ({pct(correct, total)})")
     print(f"Auto-post rate: {auto}/{len(rows)} calls ({rate}%) need NO human.")
     print(f"→ A team reviews only the other {100-rate}% — the calls the system "
           f"isn't sure about.")

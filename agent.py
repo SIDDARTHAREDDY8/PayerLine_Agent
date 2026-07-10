@@ -110,7 +110,7 @@ def extract_scored(transcript: list[dict]):
     """Returns (EligibilityResult, confidence_by_field, evidence_by_field)."""
     convo = "\n".join(f"{t['speaker'].upper()}: {t['text']}" for t in transcript)
     data = parse_json(chat(SCORED_SYSTEM, [{"role": "user", "content": convo}],
-                           model=MODEL_AGENT, max_tokens=1500))
+                           model=MODEL_AGENT, max_tokens=1500, temperature=0))
     fields = data.get("fields", {})
     values, conf, evidence = {}, {}, {}
     for f in SCORED_FIELDS:

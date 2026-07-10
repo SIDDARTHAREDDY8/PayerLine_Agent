@@ -37,7 +37,9 @@ def verify(r: EligibilityResult) -> list[str]:
                 f"INCONSISTENT · OOP met (${r.oop_met}) exceeds OOP max "
                 f"(${r.oop_max_individual}) — re-verify")
 
-    if r.coverage_active is False and (r.copay_specialist or r.copay_pcp):
+    # `is not None`, not truthiness — a $0 copay is a real, common benefit.
+    if r.coverage_active is False and (r.copay_specialist is not None
+                                       or r.copay_pcp is not None):
         flags.append("INCONSISTENT · coverage reported inactive but copays "
                      "returned — re-confirm active status before billing")
 

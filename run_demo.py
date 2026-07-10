@@ -17,6 +17,11 @@ from verifier import REQUIRED, verify
 
 def main():
     idx = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+    if not 0 <= idx < len(SCENARIOS):
+        print(f"No scenario {idx}. Pick 0-{len(SCENARIOS)-1}:")
+        for i, s in enumerate(SCENARIOS):
+            print(f"  {i}  {s['name']}")
+        sys.exit(1)
     sc = SCENARIOS[idx]
 
     print(f"\n{'='*70}\nSCENARIO: {sc['name']}\n{'='*70}")

@@ -7,7 +7,7 @@ import json
 import os
 import re
 
-from anthropic import Anthropic
+from anthropic import Anthropic, BadRequestError
 
 
 def _load_dotenv(path=".env"):
@@ -30,12 +30,26 @@ MODEL_AGENT = os.environ.get("MODEL_AGENT", "claude-sonnet-5")
 MODEL_SIM = os.environ.get("MODEL_SIM", "claude-haiku-4-5-20251001")
 
 
+# `temperature` is deprecated on newer models (claude-sonnet-5 returns 400).
+# Older ones still honor it, and the payer sim relies on it for turn variety —
+# so send it, and remember the models that refuse.
+_NO_TEMPERATURE: set[str] = set()
+
+
 def chat(system: str, messages: list[dict], model: str, max_tokens: int = 800,
          temperature: float | None = None) -> str:
-    # `temperature` is accepted for call-site readability but not sent — newer
-    # models (e.g. claude-sonnet-5) reject it.
-    resp = _client.messages.create(
-        model=model, system=system, messages=messages, max_tokens=max_tokens)
+    send_temp = temperature is not None and model not in _NO_TEMPERATURE
+    kwargs = {"temperature": temperature} if send_temp else {}
+    try:
+        resp = _client.messages.create(
+            model=model, system=system, messages=messages,
+            max_tokens=max_tokens, **kwargs)
+    except BadRequestError as e:
+        if not send_temp or "temperature" not in str(e):
+            raise
+        _NO_TEMPERATURE.add(model)
+        resp = _client.messages.create(
+            model=model, system=system, messages=messages, max_tokens=max_tokens)
     return "".join(b.text for b in resp.content if b.type == "text").strip()
 
 

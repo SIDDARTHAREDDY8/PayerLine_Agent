@@ -16,7 +16,9 @@ from verifier import REQUIRED, verify
 
 
 def main():
-    idx = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    flags = {a for a in sys.argv[1:] if a.startswith("-")}
+    idx = int(args[0]) if args else 0
     if not 0 <= idx < len(SCENARIOS):
         print(f"No scenario {idx}. Pick 0-{len(SCENARIOS)-1}:")
         for i, s in enumerate(SCENARIOS):
@@ -24,11 +26,22 @@ def main():
         sys.exit(1)
     sc = SCENARIOS[idx]
 
+    # --speak: hear the call as it happens.  --render: save it as call.mp3.
+    on_turn = None
+    if "--speak" in flags:
+        from voice import speak
+        on_turn = speak
+
     print(f"\n{'='*70}\nSCENARIO: {sc['name']}\n{'='*70}")
     payer = PayerSim(sc["truth"], behavior=sc["behavior"])
 
     print("\n--- LIVE CALL ---")
-    transcript = run_call(payer, verbose=True)
+    transcript = run_call(payer, verbose=True, on_turn=on_turn)
+
+    if "--render" in flags:
+        from voice import render
+        print("\n--- RENDERING AUDIO ---")
+        render(transcript)
 
     print("\n\n--- STRUCTURED RESULT (EHR-ready) ---")
     result, conf, evidence = extract_scored(transcript)

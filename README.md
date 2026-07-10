@@ -44,6 +44,8 @@ lines), which also means every call has a known ground truth — so accuracy is
   in the current set) alongside field accuracy. The founder-facing scale story.
 - **`eval_run.py`** — accuracy harness: scores every extracted field vs. ground
   truth across scenarios. How you'd catch a regression before it hits a payer.
+- **`voice.py`** — the voice layer: speaks each turn with a distinct voice and
+  renders a call to MP3. Offline, no API key, no account (macOS `say` + ffmpeg).
 
 ## Run it
 
@@ -53,6 +55,7 @@ run against a scripted adversarial call:
 ```bash
 pip install -r requirements.txt
 python demo_offline.py   # no key needed — shows the naive vs. corrected record
+python voice.py --play   # no key needed — hear that same call, spoken aloud
 ```
 
 The full loop (live agent ↔ simulated payer ↔ LLM extraction) needs a key:
@@ -60,9 +63,11 @@ The full loop (live agent ↔ simulated payer ↔ LLM extraction) needs a key:
 ```bash
 export ANTHROPIC_API_KEY=sk-...        # any LLM works; swap the client in llm.py
 
-python run_demo.py 2     # runs the ADVERSARIAL scenario (rep misstates deductible)
-python eval_run.py       # full accuracy + verification report across scenarios
-python review_queue.py   # per-call triage routes + the auto-post rate
+python run_demo.py 2            # runs the ADVERSARIAL scenario (rep misstates deductible)
+python run_demo.py 2 --speak    # ...and hear it, live, turn by turn
+python run_demo.py 2 --render   # ...and save it to call.mp3
+python eval_run.py              # full accuracy + verification report across scenarios
+python review_queue.py          # per-call triage routes + the auto-post rate
 ```
 
 Watch scenario 2: the rep claims $2,000 of a $1,000 deductible is met. A naive
@@ -79,9 +84,14 @@ inconsistency.
 
 ## Honest limitations (what I'd build next, inside the company)
 
-- **Voice is stubbed as text turns.** The same loop drops onto a telephony stack
-  (Twilio/LiveKit/Vapi) with STT/TTS — `call.py` is the seam. I scoped this to the
-  reasoning + reliability layer on purpose; that's the hard part.
+- **Voice is TTS-only, and there's no telephony.** `voice.py` speaks both sides
+  (macOS `say`, offline) so a call is audible, but the loop is still text in the
+  middle: no STT, no phone line. Wiring `call.py` to Twilio/LiveKit/Vapi is the
+  seam — though note the payer here is a *simulator*, so dialing out would prove
+  little. The real next step is STT: transcribing the audio back and re-running
+  extraction would measure what the speech layer costs in accuracy, which is
+  where a production system actually bleeds. I scoped this to the reasoning +
+  reliability layer on purpose; that's the hard part.
 - IVR navigation is simulated, not DTMF against real payer trees.
 - The eval set is 4 scenarios to keep it readable; the harness scales to hundreds.
 - Verification rules are hand-written; next step is learning them from labeled

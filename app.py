@@ -48,6 +48,7 @@ try:
 except Exception:
     pass
 
+import voice
 from scenarios import SCENARIOS
 from voice import _clean_for_speech
 
@@ -154,17 +155,30 @@ def run_live(scenario_idx):
                        "call above is a real run — try the live button tomorrow.")
     _runs[today] = _runs.get(today, 0) + 1
 
-    # Write into the temp dir Gradio is allowed to serve (the app cwd often isn't).
-    audio_out = str(Path(tempfile.gettempdir()) / "payerline_live.wav")
-    from demo_pipeline import generate
+    # 1) The reasoning + reliability pipeline (the real substance).
+    from demo_pipeline import run_pipeline
     try:
-        b = generate(scenario_idx=int(scenario_idx), audio_out=audio_out, engine="eleven")
+        b = run_pipeline(int(scenario_idx))
     except Exception as e:
-        _runs[today] -= 1                       # failed run shouldn't burn the cap
+        _runs[today] -= 1                       # a failed run shouldn't burn the cap
         raise gr.Error(f"Live call failed — {type(e).__name__}: {e}")
+
+    # 2) Voice, but degrade gracefully — if the ElevenLabs quota is out, still show
+    #    the call as text rather than erroring. Serve from Gradio's temp dir.
+    audio_out = str(Path(tempfile.gettempdir()) / "payerline_live.wav")
+    audio_path, note = None, ""
+    try:
+        audio_path = str(voice.render(b["transcript"], audio_out, engine="eleven"))
+    except Exception as e:
+        if "quota" in str(e).lower():
+            note = ("  ·  🔇 ElevenLabs voice quota is used up this month — showing "
+                    "the fresh call as text. The pre-recorded call above has real audio.")
+        else:
+            raise gr.Error(f"Voice render failed — {type(e).__name__}: {e}")
+
     left = MAX_LIVE - _runs[today]
-    out = list(_render_bundle(b, b["audio"]))
-    out[-1] = f"**Scenario:** {b['scenario']}  ·  _{left} live runs left today_"
+    out = list(_render_bundle(b, audio_path))
+    out[-1] = f"**Scenario:** {b['scenario']}  ·  _{left} live runs left today_{note}"
     return tuple(out)
 
 

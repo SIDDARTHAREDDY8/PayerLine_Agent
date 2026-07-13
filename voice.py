@@ -122,6 +122,33 @@ def _clean_for_speech(text: str) -> str:
     return text.strip()
 
 
+def _spell(token: str) -> str:
+    """Space out a code so TTS reads it character by character, not as a number
+    (NPI 1548291057 → 'one five four eight…', not 'one billion…')."""
+    return " ".join(c for c in token if c not in "-/")
+
+
+def _speechify(text: str) -> str:
+    """What actually gets sent to TTS: markdown stripped, and identifiers spelled
+    out digit-by-digit while dollar amounts, percentages, and years stay numbers.
+
+    An identifier is a long pure-digit run (an NPI), an alphanumeric code (a
+    member ID like ZK884120931), or a digit run joined by - or / (a reference
+    number like 7712-UH). Short bare numbers ($60, 1000, 20%) are left alone."""
+    text = _clean_for_speech(text)
+
+    def fix(m):
+        tok = m.group()
+        digits = sum(c.isdigit() for c in tok)
+        alpha = any(c.isalpha() for c in tok)
+        sep = "-" in tok or "/" in tok
+        if (digits >= 7 and not alpha) or (alpha and digits >= 3) or (sep and digits >= 2):
+            return _spell(tok)
+        return tok
+
+    return re.sub(r"[A-Za-z0-9][A-Za-z0-9\-/]*[A-Za-z0-9]", fix, text)
+
+
 def _normalize(transcript) -> list[tuple[str, str]]:
     """Accept run_call's [{'speaker','text'}] or the scripted [(SPEAKER, text)]."""
     turns = []
@@ -137,13 +164,13 @@ def _normalize(transcript) -> list[tuple[str, str]]:
 
 def _say_clip(text: str, speaker: str, path: Path) -> None:
     subprocess.run(["say", "-v", SAY_VOICES.get(speaker, "Samantha"), "-o", str(path),
-                    f"--data-format=LEI16@{_RATE}", _clean_for_speech(text)], check=True)
+                    f"--data-format=LEI16@{_RATE}", _speechify(text)], check=True)
 
 
 def _eleven_pcm(text: str, speaker: str, api_key: str) -> bytes:
     vid = _env(f"ELEVEN_VOICE_{speaker.upper()}") or ELEVEN_VOICES.get(speaker, ELEVEN_VOICES["agent"])
     body = json.dumps({
-        "text": _clean_for_speech(text),
+        "text": _speechify(text),
         "model_id": _env("ELEVEN_MODEL") or ELEVEN_MODEL,
         # mid stability + speaker boost reads as a natural, unhurried phone voice
         "voice_settings": {"stability": 0.45, "similarity_boost": 0.8,
@@ -180,7 +207,7 @@ def _piper_voice(speaker: str):
 def _piper_clip(text: str, speaker: str, path: Path) -> None:
     voice = _piper_voice(speaker)
     with wave.open(str(path), "wb") as wf:              # piper writes 22.05 kHz 16-bit mono
-        voice.synthesize_wav(_clean_for_speech(text), wf)
+        voice.synthesize_wav(_speechify(text), wf)
 
 
 def _write_wav(path: Path, pcm: bytes) -> None:

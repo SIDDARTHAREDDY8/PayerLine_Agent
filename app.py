@@ -69,6 +69,20 @@ def _decode_canned_audio() -> str:
 
 CANNED_AUDIO = _decode_canned_audio()
 
+
+def _warm_piper():
+    """Download + load the Piper voices in the background at startup, so the
+    first live click doesn't pay the ~120 MB model download."""
+    try:
+        voice._piper_voice("agent")
+        voice._piper_voice("payer")
+    except Exception:
+        pass
+
+
+import threading  # noqa: E402
+threading.Thread(target=_warm_piper, daemon=True).start()
+
 FIELD_LABELS = {
     "coverage_active": "Coverage active", "plan_type": "Plan type",
     "copay_specialist": "Specialist copay", "copay_pcp": "PCP copay",
@@ -143,7 +157,7 @@ def load_canned():
     return _render_bundle(CANNED, CANNED_AUDIO)
 
 
-def run_live(scenario_idx):
+def run_live(scenario_idx, progress=gr.Progress()):
     # Voice is self-hosted (Piper) — no TTS key needed; only the LLM key.
     if not os.environ.get("ANTHROPIC_API_KEY"):
         raise gr.Error("Live runs need ANTHROPIC_API_KEY set as a Space secret. "
@@ -155,6 +169,7 @@ def run_live(scenario_idx):
     _runs[today] = _runs.get(today, 0) + 1
 
     # 1) The reasoning + reliability pipeline (the real substance).
+    progress(0.1, desc="Calling the payer — working the eligibility checklist…")
     from demo_pipeline import run_pipeline
     try:
         b = run_pipeline(int(scenario_idx))
@@ -164,6 +179,7 @@ def run_live(scenario_idx):
 
     # 2) Voice via self-hosted Piper (free, no quota). Degrade to text on any
     #    failure rather than erroring. Serve from Gradio's temp dir.
+    progress(0.7, desc="Synthesizing the call in real voices…")
     audio_out = str(Path(tempfile.gettempdir()) / "payerline_live.wav")
     audio_path, note = None, ""
     try:
@@ -171,6 +187,7 @@ def run_live(scenario_idx):
     except Exception:
         note = "  ·  🔇 voice engine warming up — showing the fresh call as text."
 
+    progress(1.0, desc="Done")
     left = MAX_LIVE - _runs[today]
     out = list(_render_bundle(b, audio_path))
     out[-1] = f"**Scenario:** {b['scenario']}  ·  _{left} live runs left today_{note}"

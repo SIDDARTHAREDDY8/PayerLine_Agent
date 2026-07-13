@@ -1,6 +1,7 @@
 anthropic>=0.40
 pydantic>=2.0
-# Gradio 4.44 imports HfFolder, which huggingface_hub 1.0 removed — pin below it.
+# Pin below the huggingface_hub 1.0 line — matches the version verified with the
+# Space's Gradio (see sdk_version in README.md).
 huggingface_hub<1.0
 # gradio is provided by the Hugging Face Space (see sdk_version in README.md).
-# For local dev: pip install "gradio>=4.44"
+# For local dev: pip install "gradio>=5.50"

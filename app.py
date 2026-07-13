@@ -19,6 +19,20 @@ from pathlib import Path
 
 import gradio as gr
 
+# Gradio 4.44's API-schema generator crashes on a boolean JSON schema
+# (`if "const" in schema` where schema is a bool) — a known bug that aborts the
+# Space's startup self-check. Guard that recursive helper to tolerate bools.
+# https://github.com/gradio-app/gradio/issues/11722
+import gradio_client.utils as _gcu
+
+_orig_jstpt = getattr(_gcu, "_json_schema_to_python_type", None)
+if _orig_jstpt is not None:
+    def _safe_jstpt(schema, defs=None, _orig=_orig_jstpt):
+        if isinstance(schema, bool):
+            return "Any"
+        return _orig(schema, defs)
+    _gcu._json_schema_to_python_type = _safe_jstpt
+
 from scenarios import SCENARIOS
 from voice import _clean_for_speech
 

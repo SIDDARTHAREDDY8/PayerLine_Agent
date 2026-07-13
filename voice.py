@@ -123,9 +123,10 @@ def _clean_for_speech(text: str) -> str:
 
 
 def _spell(token: str) -> str:
-    """Space out a code so TTS reads it character by character, not as a number
-    (NPI 1548291057 → 'one five four eight…', not 'one billion…')."""
-    return " ".join(c for c in token if c not in "-/")
+    """Read a code character by character, with a comma between each so TTS
+    doesn't rattle through it (NPI 1548291057 → 'one, five, four, eight…', not
+    'one billion…' and not a blur)."""
+    return ", ".join(c for c in token if c not in "-/")
 
 
 def _speechify(text: str) -> str:
@@ -206,8 +207,14 @@ def _piper_voice(speaker: str):
 
 def _piper_clip(text: str, speaker: str, path: Path) -> None:
     voice = _piper_voice(speaker)
+    cfg = None
+    try:
+        from piper.config import SynthesisConfig
+        cfg = SynthesisConfig(length_scale=1.12)        # ~12% slower for clarity
+    except Exception:
+        pass
     with wave.open(str(path), "wb") as wf:              # piper writes 22.05 kHz 16-bit mono
-        voice.synthesize_wav(_speechify(text), wf)
+        voice.synthesize_wav(_speechify(text), wf, syn_config=cfg)
 
 
 def _write_wav(path: Path, pcm: bytes) -> None:

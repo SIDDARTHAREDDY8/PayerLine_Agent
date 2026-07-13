@@ -12,6 +12,10 @@ license: mit
 
 # PayerLine — a working miniature of VoiceAdmin's core loop
 
+[![Live demo](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20demo-PayerLine-blue)](https://huggingface.co/spaces/siddarthareddy8/Payerline)
+
+**▶ [Try the live demo](https://huggingface.co/spaces/siddarthareddy8/Payerline)** — a real pre-recorded payer call plays instantly (with the agent catching the rep's mistake), and a button runs a fresh one live.
+
 I built this after studying VoiceAdmin because I wanted to *show* rather than tell.
 It's a small, runnable prototype of the hardest, most valuable part of an outbound
 payer-call product: **run the call, extract accurate structured benefits, catch the

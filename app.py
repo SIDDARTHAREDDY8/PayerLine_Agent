@@ -1,20 +1,18 @@
-"""PayerLine — the live, click-to-run demo (Gradio, for Hugging Face Spaces).
+"""PayerLine — the click-to-run demo (Gradio, for Hugging Face Spaces).
 
-Two modes, one code path (demo_pipeline.generate):
-  • A real pre-recorded call plays instantly and free — no API calls (assets/).
-  • "Run a live call" generates a fresh one on demand, behind a daily cap so a
-    burst of visitors can't drain the API keys.
+Serves a pool of pre-rendered real calls (assets/calls/): each is a genuine
+end-to-end run — agent ↔ simulated payer, extracted, verified, triaged, and
+voiced with Piper — committed with its audio so a click plays instantly. A
+fresh call takes minutes to generate and voice, so we do that offline
+(build_pool.py), not on every click.
 
-Secrets on the Space (Settings → Variables and secrets):
-  ANTHROPIC_API_KEY, ELEVENLABS_API_KEY   — required for live runs
-  MAX_LIVE_RUNS_PER_DAY                    — optional, defaults to 25
+No secrets are needed to serve the demo; everything is pre-rendered.
 """
 import base64
 import html
 import json
 import os
 import tempfile
-from datetime import date
 from pathlib import Path
 
 import gradio as gr
@@ -48,14 +46,10 @@ try:
 except Exception:
     pass
 
-import voice
-from scenarios import SCENARIOS
 from voice import _clean_for_speech
 
 ASSETS = Path("assets")
 CANNED = json.loads((ASSETS / "demo_call.json").read_text())
-MAX_LIVE = int(os.environ.get("MAX_LIVE_RUNS_PER_DAY", "25"))
-_runs: dict[str, int] = {}
 
 
 def _decode_canned_audio() -> str:
@@ -70,18 +64,20 @@ def _decode_canned_audio() -> str:
 CANNED_AUDIO = _decode_canned_audio()
 
 
-def _warm_piper():
-    """Download + load the Piper voices in the background at startup, so the
-    first live click doesn't pay the ~120 MB model download."""
-    try:
-        voice._piper_voice("agent")
-        voice._piper_voice("payer")
-    except Exception:
-        pass
+def _load_pool():
+    """Pre-rendered real calls (transcript + result + triage + audio), served
+    instantly on click — generating one live takes minutes, so we don't."""
+    pool, d = [], ASSETS / "calls"
+    for f in sorted(d.glob("*.json")) if d.exists() else []:
+        b = json.loads(f.read_text())
+        out = Path(tempfile.gettempdir()) / f"payerline_pool_{f.stem}.m4a"
+        out.write_bytes(base64.b64decode(b["audio_b64"]))
+        pool.append((b, str(out)))
+    return pool
 
 
-import threading  # noqa: E402
-threading.Thread(target=_warm_piper, daemon=True).start()
+POOL = _load_pool()
+_pool_idx = {"i": -1}
 
 FIELD_LABELS = {
     "coverage_active": "Coverage active", "plan_type": "Plan type",
@@ -157,40 +153,15 @@ def load_canned():
     return _render_bundle(CANNED, CANNED_AUDIO)
 
 
-def run_live(scenario_idx, progress=gr.Progress()):
-    # Voice is self-hosted (Piper) — no TTS key needed; only the LLM key.
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise gr.Error("Live runs need ANTHROPIC_API_KEY set as a Space secret. "
-                       "The pre-recorded call above is a real run.")
-    today = str(date.today())
-    if _runs.get(today, 0) >= MAX_LIVE:
-        raise gr.Error(f"Daily live-run cap reached ({MAX_LIVE}). The pre-recorded "
-                       "call above is a real run — try the live button tomorrow.")
-    _runs[today] = _runs.get(today, 0) + 1
-
-    # 1) The reasoning + reliability pipeline (the real substance).
-    progress(0.1, desc="Calling the payer — working the eligibility checklist…")
-    from demo_pipeline import run_pipeline
-    try:
-        b = run_pipeline(int(scenario_idx))
-    except Exception as e:
-        _runs[today] -= 1                       # a failed run shouldn't burn the cap
-        raise gr.Error(f"Live call failed — {type(e).__name__}: {e}")
-
-    # 2) Voice via self-hosted Piper (free, no quota). Degrade to text on any
-    #    failure rather than erroring. Serve from Gradio's temp dir.
-    progress(0.7, desc="Synthesizing the call in real voices…")
-    audio_out = str(Path(tempfile.gettempdir()) / "payerline_live.wav")
-    audio_path, note = None, ""
-    try:
-        audio_path = str(voice.render(b["transcript"], audio_out, engine="piper"))
-    except Exception:
-        note = "  ·  🔇 voice engine warming up — showing the fresh call as text."
-
-    progress(1.0, desc="Done")
-    left = MAX_LIVE - _runs[today]
-    out = list(_render_bundle(b, audio_path))
-    out[-1] = f"**Scenario:** {b['scenario']}  ·  _{left} live runs left today_{note}"
+def next_call():
+    """Serve the next pre-rendered real call — instant, and a different scenario
+    (and triage outcome) each click."""
+    if not POOL:
+        return load_canned()
+    _pool_idx["i"] = (_pool_idx["i"] + 1) % len(POOL)
+    b, audio = POOL[_pool_idx["i"]]
+    out = list(_render_bundle(b, audio))
+    out[-1] = f"**Scenario:** {b['scenario']}  ·  _real call {_pool_idx['i']+1} of {len(POOL)}_"
     return tuple(out)
 
 
@@ -218,19 +189,16 @@ with gr.Blocks(title="PayerLine") as demo:
             verify_out = gr.Markdown()
             gr.Markdown("### Triage decision")
             triage_out = gr.HTML()
-    gr.Markdown("---\n### Run a fresh call live")
-    with gr.Row():
-        scenario_dd = gr.Dropdown(
-            [(s["name"], i) for i, s in enumerate(SCENARIOS)], value=2,
-            label="Scenario", scale=3)
-        run_btn = gr.Button("▶ Run a live call", variant="primary", scale=1)
+    gr.Markdown("---")
+    run_btn = gr.Button("▶ Play another real call", variant="primary")
     gr.Markdown(
-        "_Each live run makes a fresh call (new every time) and spends API "
-        "credits, so it's capped per day. The pre-recorded call above is free._")
+        "_Every call here is a genuine end-to-end run — agent ↔ simulated payer, "
+        "extracted, verified, triaged, and voiced. Each click plays a different "
+        "one (auto-post, human-review, and re-verify outcomes all show up)._")
 
     outs = [audio, transcript, result, verify_out, triage_out, scen]
     demo.load(load_canned, outputs=outs)
-    run_btn.click(run_live, inputs=[scenario_dd], outputs=outs)
+    run_btn.click(next_call, outputs=outs)
 
 
 if __name__ == "__main__":

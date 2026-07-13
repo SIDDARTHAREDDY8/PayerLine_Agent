@@ -22,7 +22,8 @@ routing only the risky calls to a human.**
 
 A real payer call plays instantly, in real voices: hear the agent push back when
 the rep claims $2,000 of a $1,000 deductible has been met, then auto-post the
-corrected record. One button runs a fresh call live.
+corrected record. One button plays another real call — a different scenario each
+time, with auto-post, human-review, and re-verify outcomes all on show.
 
 I built this after studying VoiceAdmin because I wanted to *show* rather than tell —
 a small, runnable prototype of the hardest, most valuable part of an outbound

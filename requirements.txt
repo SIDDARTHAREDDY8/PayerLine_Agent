@@ -1,7 +1,6 @@
-anthropic>=0.40
+# The Space only serves pre-rendered calls (assets/calls/), so it needs no LLM
+# or TTS at runtime — just Gradio. pydantic is kept for the shared schema import.
 pydantic>=2.0
-# Self-hosted neural voice for the live button — free, no key, no quota.
-piper-tts
 # ZeroGPU startup check needs a @spaces.GPU function to exist (see app.py).
 spaces
 # Pin below the huggingface_hub 1.0 line — matches the version verified with the

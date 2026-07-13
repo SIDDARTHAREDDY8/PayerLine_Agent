@@ -1,2 +1,4 @@
 anthropic>=0.40
 pydantic>=2.0
+# gradio is provided by the Hugging Face Space (see sdk_version in README.md).
+# For local dev: pip install "gradio>=4.44"

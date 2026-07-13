@@ -154,8 +154,14 @@ def run_live(scenario_idx):
                        "call above is a real run — try the live button tomorrow.")
     _runs[today] = _runs.get(today, 0) + 1
 
+    # Write into the temp dir Gradio is allowed to serve (the app cwd often isn't).
+    audio_out = str(Path(tempfile.gettempdir()) / "payerline_live.wav")
     from demo_pipeline import generate
-    b = generate(scenario_idx=int(scenario_idx), audio_out="live_call.wav", engine="eleven")
+    try:
+        b = generate(scenario_idx=int(scenario_idx), audio_out=audio_out, engine="eleven")
+    except Exception as e:
+        _runs[today] -= 1                       # failed run shouldn't burn the cap
+        raise gr.Error(f"Live call failed — {type(e).__name__}: {e}")
     left = MAX_LIVE - _runs[today]
     out = list(_render_bundle(b, b["audio"]))
     out[-1] = f"**Scenario:** {b['scenario']}  ·  _{left} live runs left today_"

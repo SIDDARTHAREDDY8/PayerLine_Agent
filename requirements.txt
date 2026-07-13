@@ -1,5 +1,7 @@
 anthropic>=0.40
 pydantic>=2.0
+# ZeroGPU startup check needs a @spaces.GPU function to exist (see app.py).
+spaces
 # Pin below the huggingface_hub 1.0 line — matches the version verified with the
 # Space's Gradio (see sdk_version in README.md).
 huggingface_hub<1.0

@@ -94,6 +94,43 @@ Watch scenario 2: the rep claims $2,000 of a $1,000 deductible is met. A naive
 agent records it; here the agent pushes back and the verifier flags the
 inconsistency.
 
+## Stress-tested through a phone line
+
+The demo runs on clean text, so I measured what happens when it doesn't.
+[`stress_eval.py`](stress_eval.py) speaks each rep answer, degrades it to a
+narrowband, noisy telephone channel (300–3400 Hz, ~12 dB SNR), transcribes it
+back with a local speech-to-text model (`faster-whisper`) — the exact path a
+production agent hears — and re-extracts from *that*. Free and offline: `say` +
+`faster-whisper`, no ElevenLabs, no API for the audio path.
+
+A measured run over 6 scenarios (the clean set + two where the **rep** is the
+failure source):
+
+| | Clean text | Through phone + STT |
+|---|---|---|
+| **Field accuracy** | 100% (32/32) | 93% (30/32) |
+
+- STT mis-hears words freely — `PPO → PTO`, `$40 → $1.40` — so voice genuinely
+  costs accuracy.
+- **0 bad calls auto-posted.** Every call with a detectable inconsistency was
+  flagged and held back: a terminated plan whose rep still quoted copays, and a
+  rep who stated an impossible number and wouldn't correct it — both routed to
+  re-verify (3/3 caught). 3 of 6 auto-posted; the risky half was held.
+- **Honest caveat:** the verifier catches *structural* errors with certainty
+  (deductible-met > deductible, inactive-with-copays, missing fields). A
+  plausible-but-wrong value that breaks no rule — a `$40` copay heard as `$1.40`
+  — is only stopped when it rides in an already-flagged call or drops that
+  field's confidence below the auto-post bar. Closing that gap is the roadmap:
+  re-confirm low-confidence numbers on the call. Rigor over a clean headline.
+
+The takeaway: voice introduces errors, and the deterministic reliability layer
+keeps the structural ones out of the EHR — measured end to end, not asserted.
+
+```bash
+pip install -r requirements-eval.txt   # faster-whisper + scipy (local only)
+python stress_eval.py                   # speak → degrade → STT → extract → triage
+```
+
 ## Why this maps to VoiceAdmin specifically
 
 | VoiceAdmin does | This prototype demonstrates |

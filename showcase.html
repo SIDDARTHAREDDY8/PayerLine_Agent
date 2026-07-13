@@ -540,6 +540,50 @@
 
   <section>
     <div class="sec-head">
+      <h2>Stress-tested through a phone line</h2>
+      <span class="tag">python stress_eval.py</span>
+    </div>
+    <p class="limits" style="margin-bottom:18px">
+      The transcript above is clean text — so I measured what happens when it isn't. Every rep answer is
+      spoken, degraded to a narrowband, noisy telephone channel (300–3400&nbsp;Hz, ~12&nbsp;dB SNR), and
+      transcribed back with a local speech-to-text model — the exact path a production agent hears — then
+      re-extracted. Free and offline: <code>say</code> + <code>faster-whisper</code>, no API for the audio path.
+    </p>
+    <div class="stats" style="margin-top:0">
+      <div class="stat"><span class="n">100→93%</span><span class="l">field accuracy: clean text → through phone&nbsp;+&nbsp;STT</span></div>
+      <div class="stat good"><span class="n">0</span><span class="l">bad calls that auto-posted — the risky half was held back</span></div>
+      <div class="stat catch"><span class="n">3/3</span><span class="l">structurally-unsafe calls flagged before the EHR</span></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>What voice got wrong — and what happened to it</h3>
+      <div class="queue">
+        <div class="qrow review">
+          <div class="qbody">
+            <div class="qname">plan type · <code>PPO</code> heard as <code>PTO</code></div>
+            <div class="qreason">rode in a call already flagged for an impossible deductible — held back, never posted</div>
+          </div>
+          <span class="pill review">↻ held</span>
+        </div>
+        <div class="qrow review">
+          <div class="qbody">
+            <div class="qname">specialist copay · <code>$40</code> heard as <code>$1.40</code></div>
+            <div class="qreason">same call, same hold — re-verify on a fresh line before anything reaches billing</div>
+          </div>
+          <span class="pill review">↻ held</span>
+        </div>
+      </div>
+      <p class="limits" style="margin:14px 0 0">
+        <b>Honestly:</b> the verifier catches <i>structural</i> errors with certainty — deductible-met&nbsp;&gt;&nbsp;deductible,
+        inactive-with-copays, missing fields. A plausible-but-wrong value that breaks no rule is only stopped when it
+        rides in an already-flagged call or drops the field's confidence below the auto-post bar. Closing that gap —
+        re-confirming low-confidence numbers on the call — is the roadmap. The point stands: voice introduces errors,
+        and the deterministic layer keeps the structural ones out of the EHR, measured end to end.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
       <h2>Run it yourself</h2>
       <span class="tag">~/voiceadmin-payerline-demo</span>
     </div>
@@ -550,6 +594,8 @@
       <div><span class="p">$</span> <span class="cmd">python review_queue.py</span></div>
       <div><span class="c"># accuracy scored across every scenario</span></div>
       <div><span class="p">$</span> <span class="cmd">python eval_run.py</span></div>
+      <div><span class="c"># speak → phone-degrade → STT → extract → triage (free, local)</span></div>
+      <div><span class="p">$</span> <span class="cmd">pip install -r requirements-eval.txt && python stress_eval.py</span></div>
       <div><span class="c"># no API key? see the pipeline offline</span></div>
       <div><span class="p">$</span> <span class="cmd">python demo_offline.py</span></div>
     </div>

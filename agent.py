@@ -107,16 +107,26 @@ Rules:
 
 
 def extract_scored(transcript: list[dict]):
-    """Returns (EligibilityResult, confidence_by_field, evidence_by_field)."""
+    """Returns (EligibilityResult, confidence_by_field, evidence_by_field).
+
+    Falls back to the flat extractor if the scored JSON won't parse — messy real
+    (or STT-transcribed) transcripts occasionally make the model emit invalid
+    JSON, and a verification pipeline must never crash on one bad call."""
     convo = "\n".join(f"{t['speaker'].upper()}: {t['text']}" for t in transcript)
-    data = parse_json(chat(SCORED_SYSTEM, [{"role": "user", "content": convo}],
-                           model=MODEL_AGENT, max_tokens=1500, temperature=0))
-    fields = data.get("fields", {})
-    values, conf, evidence = {}, {}, {}
-    for f in SCORED_FIELDS:
-        cell = fields.get(f) or {}
-        values[f] = cell.get("value")
-        conf[f] = float(cell.get("confidence") or 0.0)
-        evidence[f] = cell.get("evidence") or ""
-    result = EligibilityResult(**values, notes=(data.get("notes") or None))
-    return result, conf, evidence
+    try:
+        data = parse_json(chat(SCORED_SYSTEM, [{"role": "user", "content": convo}],
+                               model=MODEL_AGENT, max_tokens=1500, temperature=0))
+        fields = data.get("fields", {})
+        values, conf, evidence = {}, {}, {}
+        for f in SCORED_FIELDS:
+            cell = fields.get(f) or {}
+            values[f] = cell.get("value")
+            conf[f] = float(cell.get("confidence") or 0.0)
+            evidence[f] = cell.get("evidence") or ""
+        result = EligibilityResult(**values, notes=(data.get("notes") or None))
+        return result, conf, evidence
+    except (ValueError, TypeError):
+        result = extract(transcript)                    # flat, far simpler JSON
+        d = result.model_dump()
+        conf = {f: (1.0 if d.get(f) is not None else 0.0) for f in SCORED_FIELDS}
+        return result, conf, {f: "" for f in SCORED_FIELDS}

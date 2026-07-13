@@ -1,0 +1,83 @@
+{
+  "clean_accuracy": [
+    32,
+    32
+  ],
+  "voice_accuracy": [
+    30,
+    32
+  ],
+  "route_correct": [
+    6,
+    6
+  ],
+  "unsafe_flagged": [
+    3,
+    3
+  ],
+  "scenarios": [
+    {
+      "scenario": "Clean PPO \u2014 cooperative rep",
+      "clean": 8,
+      "heard": 8,
+      "n": 8,
+      "route": "AUTO_POST",
+      "expect_route": "AUTO_POST",
+      "reason": "all required fields confirmed with high confidence",
+      "misses_through_voice": []
+    },
+    {
+      "scenario": "HMO \u2014 terse rep, must probe",
+      "clean": 7,
+      "heard": 7,
+      "n": 7,
+      "route": "AUTO_POST",
+      "expect_route": "AUTO_POST",
+      "reason": "all required fields confirmed with high confidence",
+      "misses_through_voice": []
+    },
+    {
+      "scenario": "ADVERSARIAL \u2014 rep misstates deductible met",
+      "clean": 5,
+      "heard": 5,
+      "n": 5,
+      "route": "AUTO_POST",
+      "expect_route": "AUTO_POST",
+      "reason": "all required fields confirmed with high confidence",
+      "misses_through_voice": []
+    },
+    {
+      "scenario": "Portal-only \u2014 rep can't confirm OOP max",
+      "clean": 6,
+      "heard": 6,
+      "n": 6,
+      "route": "REVIEW",
+      "expect_route": "REVIEW",
+      "reason": "not confirmed by payer: out-of-pocket max",
+      "misses_through_voice": []
+    },
+    {
+      "scenario": "Terminated plan \u2014 rep still quotes copays",
+      "clean": 3,
+      "heard": 3,
+      "n": 3,
+      "route": "REDO",
+      "expect_route": "REDO",
+      "reason": "payer data internally inconsistent \u2014 re-verify on a fresh call",
+      "misses_through_voice": []
+    },
+    {
+      "scenario": "Impossible deductible \u2014 rep won't correct it",
+      "clean": 3,
+      "heard": 1,
+      "n": 3,
+      "route": "REDO",
+      "expect_route": "REDO",
+      "reason": "payer data internally inconsistent \u2014 re-verify on a fresh call",
+      "misses_through_voice": [
+        "plan_type: expected PPO, heard PTO",
+        "copay_specialist: expected 40, heard 1.4"
+      ]
+    }
+  ]
+}

@@ -1,15 +1,3 @@
----
-title: PayerLine
-emoji: 📞
-colorFrom: indigo
-colorTo: blue
-sdk: gradio
-sdk_version: 5.50.0
-app_file: app.py
-pinned: false
-license: mit
----
-
 # 📞 PayerLine — a voice agent that verifies insurance benefits
 
 [![Live demo](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20demo-PayerLine-blue)](https://siddarthareddy8-payerline.hf.space)

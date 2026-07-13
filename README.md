@@ -10,20 +10,26 @@ pinned: false
 license: mit
 ---
 
-# PayerLine — a working miniature of VoiceAdmin's core loop
+# 📞 PayerLine — a voice agent that verifies insurance benefits
 
-[![Live demo](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20demo-PayerLine-blue)](https://huggingface.co/spaces/siddarthareddy8/Payerline)
+[![Live demo](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20demo-PayerLine-blue)](https://siddarthareddy8-payerline.hf.space)
 
-**▶ [Try the live demo](https://huggingface.co/spaces/siddarthareddy8/Payerline)** — a real pre-recorded payer call plays instantly (with the agent catching the rep's mistake), and a button runs a fresh one live.
+**An outbound AI agent calls a (simulated) insurance payer, works an eligibility
+checklist, catches the rep's mistakes, and hands the EHR clean structured data —
+routing only the risky calls to a human.**
 
-I built this after studying VoiceAdmin because I wanted to *show* rather than tell.
-It's a small, runnable prototype of the hardest, most valuable part of an outbound
+### ▶ [Try it live — no signup](https://siddarthareddy8-payerline.hf.space)
+
+A real payer call plays instantly, in real voices: hear the agent push back when
+the rep claims $2,000 of a $1,000 deductible has been met, then auto-post the
+corrected record. One button runs a fresh call live.
+
+I built this after studying VoiceAdmin because I wanted to *show* rather than tell —
+a small, runnable prototype of the hardest, most valuable part of an outbound
 payer-call product: **run the call, extract accurate structured benefits, catch the
-rep's mistakes, and hand the EHR clean data.**
-
-It runs entirely locally against a *simulated* payer (no real PHI, no live payer
-lines), which also means every call has a known ground truth — so accuracy is
-**measured, not claimed.**
+rep's mistakes, and hand the EHR clean data.** It runs against a *simulated* payer
+(no real PHI, no live payer lines), which also means every call has a known ground
+truth — so accuracy is **measured, not claimed.**
 
 ## What it does
 
